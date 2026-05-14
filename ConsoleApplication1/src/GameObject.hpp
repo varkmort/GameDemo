@@ -7,13 +7,16 @@
 #include <string>
 #include <filesystem>
 
+#include <SFML/Graphics.hpp>
+
 #include "Coord.hpp"
 
 class GameObject
 {
+public:
+
 	using fs_path = std::filesystem::path;
 
-public:
 	GameObject():
 		position_({0, 0}),
 		imgPath_(""),
@@ -31,7 +34,7 @@ public:
 	{}
 	virtual ~GameObject() = default;
 	
-	virtual void Update() = 0;
+	virtual void Update(sf::RenderTarget& target) = 0;
 	
 	const Coord& GetPosition() const { return position_; }
 	const fs_path& GetImagePath() const { return imgPath_; }
