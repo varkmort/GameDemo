@@ -146,6 +146,7 @@
     <None Include="resources\long-whip-attack-whistle-sound-material.ogg" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="resources\playerTexture.png" />
     <Image Include="resources\sfml_logo.png" />
   </ItemGroup>
   <ItemGroup>
@@ -155,7 +156,9 @@
     <ClInclude Include="src\Coord.hpp" />
     <ClInclude Include="src\GameMap.hpp" />
     <ClInclude Include="src\GameObject.hpp" />
+    <ClInclude Include="src\Player.hpp" />
     <ClInclude Include="src\Tile.hpp" />
+    <ClInclude Include="src\Wall.hpp" />
     <ClInclude Include="src\WindowRenderer.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

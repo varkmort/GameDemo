@@ -6,6 +6,7 @@
 //либо строка либо путь сстемы должен применяться для изображения объекта
 #include <string>
 #include <filesystem>
+#include <memory>
 
 #include <SFML/Graphics.hpp>
 
@@ -20,7 +21,8 @@ public:
 	GameObject():
 		position_({0, 0}),
 		imgPath_(""),
-		scaleToValue_(64)
+		scaleToValue_(64),
+		textureLoaded_(false)
 	{
 	}
 
@@ -30,7 +32,8 @@ public:
 		int scaleToValue=64)
 		: position_(position),
 		imgPath_(std::move(imgPath)),
-		scaleToValue_(scaleToValue)
+		scaleToValue_(scaleToValue),
+		textureLoaded_(false)
 	{}
 	virtual ~GameObject() = default;
 	
@@ -42,11 +45,11 @@ public:
 	
 	void SetPosition(const Coord& position) { position_ = position; }
 
-	void SetImagePath(const fs_path& imgPath) { imgPath_ = imgPath; }	
+	void SetImagePath(const fs_path& imgPath) { imgPath_ = imgPath; textureLoaded_ = false; }	
 
 	void SetScaleToValue(int scaleToValue) 
 	{ scaleToValue_ = scaleToValue; }
-	
+
 	bool IsCollidingWith(const GameObject& other) const
 	{
 		long leftA = position_.x;
@@ -63,10 +66,44 @@ public:
 	}
 
 protected:
+	// Загружает текстуру при необходимости, настраивает sprite и масштаб.
+	bool EnsureTextureLoaded()
+	{
+		if (textureLoaded_) return true;
+		if (imgPath_.empty()) return false;
+		// loadFromFile принимает std::string (utf-8) на большинстве платформ
+		if (!texture_.loadFromFile(imgPath_.string()))
+			return false;
+
+		if (!sprite_)
+			sprite_ = std::make_unique<sf::Sprite>(texture_);
+		else
+			sprite_->setTexture(texture_);
+
+		// Масштабируем спрайт так, чтобы он вписался в квадрат размера scaleToValue_
+		auto texSize = texture_.getSize();
+		if (texSize.x > 0 && texSize.y > 0)
+		{
+			float sx = static_cast<float>(scaleToValue_) / static_cast<float>(texSize.x);
+			float sy = static_cast<float>(scaleToValue_) / static_cast<float>(texSize.y);
+			sprite_->setScale(sf::Vector2f(sx, sy));
+		}
+
+		textureLoaded_ = true;
+		return true;
+	}
+
+	// Доступ для наследников к sprite
+	sf::Sprite& AccessSprite() { return *sprite_; }
 
 	int scaleToValue_;
 	fs_path imgPath_;	
 	Coord position_;
+
+private:
+	mutable sf::Texture texture_;
+	mutable std::unique_ptr<sf::Sprite> sprite_;
+	mutable bool textureLoaded_;
 };
 
 
