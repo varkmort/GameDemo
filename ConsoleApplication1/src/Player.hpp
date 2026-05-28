@@ -7,13 +7,14 @@
 #include <vector>
 #include <memory>
 #include "GameObject.hpp"
+#include "CollisionChecker.hpp"
 
 class Player : public GameObject
 {
 public:
-	Player() : moveDelay_(0.2f), moveClock_() {}
+	Player() : moveDelay_(0.2f), moveClock_(), collisionChecker_(nullptr) {}
 	Player(const Coord& position, fs_path imgPath, int scaleToValue = 64)
-		: GameObject(position, imgPath, scaleToValue), moveDelay_(0.2f), moveClock_()
+		: GameObject(position, imgPath, scaleToValue), moveDelay_(0.1f), moveClock_(), collisionChecker_(nullptr)
 	{}
 
 	void Update(sf::RenderTarget& target) override
@@ -25,6 +26,7 @@ public:
 		if (!EnsureTextureLoaded())
 			return;
 
+		EnsureTextureLoaded();
 		sf::Sprite& spr = AccessSprite();
 		// Устанавливаем позицию спрайта в текущие координаты
 		spr.setPosition({static_cast<float>(position_.x), static_cast<float>(position_.y)});
@@ -38,7 +40,13 @@ public:
 		position_.y += dy;
 	}
 
-	// Устанавливает список стен для проверки коллизий
+	// Устанавливает проверитель коллизий (новый способ)
+	void SetCollisionChecker(CollisionChecker* checker)
+	{
+		collisionChecker_ = checker;
+	}
+
+	// Устанавливает список стен для проверки коллизий (DEPRECATED - используйте SetCollisionChecker)
 	void SetWalls(std::vector<std::shared_ptr<GameObject>>* walls)
 	{
 		walls_ = walls;
@@ -47,10 +55,11 @@ public:
 private:
 	float moveDelay_;     // Задержка в секундах между движениями
 	sf::Clock moveClock_; // Таймер для отслеживания времени последнего движения
-	std::vector<std::shared_ptr<GameObject>>* walls_ = nullptr; // Указатель на список стен
+	std::vector<std::shared_ptr<GameObject>>* walls_ = nullptr; // Указатель на список стен (DEPRECATED)
+	CollisionChecker* collisionChecker_ = nullptr; // Проверитель коллизий
 
 	// Проверяет, можно ли двигаться (если прошла достаточная задержка)
-	bool CanMove()
+	bool CanMoveNow()
 	{
 		if (moveClock_.getElapsedTime().asSeconds() >= moveDelay_)
 		{
@@ -60,7 +69,7 @@ private:
 		return false;
 	}
 
-	// Проверяет коллизию с другим объектом
+	// Проверяет коллизию с другим объектом (DEPRECATED - используйте collisionChecker_)
 	bool WillCollideWith(const GameObject& other, long newX, long newY) const
 	{
 		// Границы текущего игрока после перемещения
@@ -84,45 +93,50 @@ private:
 	void HandleInput()
 	{
 		// Проверяем, прошла ли задержка перед следующим движением
-		if (!CanMove())
+		if (!CanMoveNow())
 			return;
 
 		int moveDistance = scaleToValue_; // Движемся на один тайл (64 пикселя по умолчанию)
 		long newX = position_.x;
 		long newY = position_.y;
-		bool isMoving = false;
+		bool moved = false;
+
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up))
 		{
 			newY -= moveDistance;
-			isMoving = true;
+			moved = true;
 		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))
+		else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))
 		{
 			newY += moveDistance;
-			isMoving = true;
+			moved = true;
 		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))
+		else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))
 		{
 			newX -= moveDistance;
-			isMoving = true;
+			moved = true;
 		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right))
+		else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right))
 		{
 			newX += moveDistance;
-			isMoving = true;
+			moved = true;
 		}
-		if (!isMoving)
+
+		if (!moved)
 			return; // Ни одна клавиша не нажата, не движемся
 
-		// Проверяем коллизии со стенами перед движением
-		if (walls_)
+		// Используем новый CollisionChecker если доступен
+		if (collisionChecker_)
 		{
-			for (const auto& wall : *walls_)
+			if (collisionChecker_->CanMove(position_, newX - position_.x, newY - position_.y, scaleToValue_, this))
 			{
-				if (wall && WillCollideWith(*wall, newX, newY))
-					return; // Не двигаемся, если будет коллизия
+				position_.x = newX;
+				position_.y = newY;
 			}
+			return;
 		}
+
+
 
 		// Если нет коллизий, двигаемся
 		position_.x = newX;

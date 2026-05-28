@@ -153,10 +153,13 @@
     <Font Include="resources\tuffy.ttf" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Camera.hpp" />
+    <ClInclude Include="src\CollisionChecker.hpp" />
     <ClInclude Include="src\Coord.hpp" />
     <ClInclude Include="src\GameMap.hpp" />
     <ClInclude Include="src\GameObject.hpp" />
     <ClInclude Include="src\Player.hpp" />
+    <ClInclude Include="src\Room.hpp" />
     <ClInclude Include="src\Tile.hpp" />
     <ClInclude Include="src\Wall.hpp" />
     <ClInclude Include="src\WindowRenderer.hpp" />
